@@ -500,40 +500,42 @@ def create_artist_submission():
 def shows():
   # displays list of shows at /shows
   # TODO: replace with real venues data.
+  venues =  Venue.query.join(Show).join(Artist)
+  artists =  Artist.query.join(Show)
   data=[{
-    "venue_id": 1,
-    "venue_name": "The Musical Hop",
-    "artist_id": 4,
-    "artist_name": "Guns N Petals",
-    "artist_image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80",
-    "start_time": "2019-05-21T21:30:00.000Z"
+    "venue_id": venues.filter(Show.venue_id==1).first().id,
+    "venue_name": venues.filter(Show.venue_id==1).first().name,
+    "artist_id": artists.filter(Show.artist_id==4).first().shows[0].artists.id,
+    "artist_name": artists.filter(Show.venue_id==1,Show.artist_id==4).first().shows[0].artists.name,
+    "artist_image_link": artists.filter(Show.artist_id==4).first().shows[0].artists.image_link,
+    "start_time": venues.filter(Show.venue_id==1).first().shows[0].start_time.strftime("%m/%d/%Y, %H:%M:%S")
   }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 5,
-    "artist_name": "Matt Quevedo",
-    "artist_image_link": "https://images.unsplash.com/photo-1495223153807-b916f75de8c5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=334&q=80",
-    "start_time": "2019-06-15T23:00:00.000Z"
+    "venue_id": venues.filter(Show.venue_id==3).first().id,
+    "venue_name": venues.filter(Show.venue_id==3).first().name,
+    "artist_id": artists.filter(Show.artist_id==5).first().shows[0].artists.id,
+    "artist_name": artists.filter(Show.venue_id==3,Show.artist_id==5).first().shows[0].artists.name,
+    "artist_image_link": artists.filter(Show.venue_id==3,Show.artist_id==5).first().shows[0].artists.image_link,
+    "start_time": artists.filter(Show.artist_id==5).first().shows[0].start_time.strftime("%m/%d/%Y, %H:%M:%S")
   }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
-    "start_time": "2035-04-01T20:00:00.000Z"
-  }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
+    "venue_id": venues.filter(Show.venue_id==3).first().id,
+    "venue_name": venues.filter(Show.venue_id==3).first().name,
+    "artist_id": artists.filter(Show.artist_id==6).first().shows[0].artists.id,
+    "artist_name": artists.filter(Show.artist_id==6).first().shows[0].artists.name,
+    "artist_image_link": artists.filter(Show.venue_id==3,Show.artist_id==6).first().shows[0].artists.image_link,
+    "start_time": artists.filter(Show.venue_id==3,Show.artist_id==6).first().shows[0].start_time.strftime("%m/%d/%Y, %H:%M:%S")
+  }, {    
+    "venue_id": venues.filter(Show.venue_id==3).first().id,
+    "venue_name": venues.filter(Show.venue_id==3).first().name,
+    "artist_id": artists.filter(Show.artist_id==6).first().shows[0].artists.id,
+    "artist_name": artists.filter(Show.artist_id==6).first().shows[0].artists.name,
+    "artist_image_link": artists.filter(Show.venue_id==3,Show.artist_id==6).first().shows[0].artists.image_link,
     "start_time": "2035-04-08T20:00:00.000Z"
   }, {
-    "venue_id": 3,
-    "venue_name": "Park Square Live Music & Coffee",
-    "artist_id": 6,
-    "artist_name": "The Wild Sax Band",
-    "artist_image_link": "https://images.unsplash.com/photo-1558369981-f9ca78462e61?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=794&q=80",
+    "venue_id": venues.filter(Show.venue_id==3).first().id,
+    "venue_name": venues.filter(Show.venue_id==3).first().name,
+    "artist_id": artists.filter(Show.artist_id==6).first().shows[0].artists.id,
+    "artist_name": artists.filter(Show.artist_id==6).first().shows[0].artists.name,
+    "artist_image_link": artists.filter(Show.venue_id==3,Show.artist_id==6).first().shows[0].artists.image_link,
     "start_time": "2035-04-15T20:00:00.000Z"
   }]
   return render_template('pages/shows.html', shows=data)
