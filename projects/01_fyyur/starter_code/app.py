@@ -18,13 +18,12 @@ from flask_migrate import Migrate
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
-
+# TODO: connect to a local postgresql database
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-# TODO: connect to a local postgresql database
 
 #----------------------------------------------------------------------------#
 # Models.
@@ -32,7 +31,6 @@ migrate = Migrate(app, db)
 
 class Venue(db.Model):
     __tablename__ = 'Venue'
-
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     city = db.Column(db.String(120))
@@ -50,7 +48,6 @@ class Venue(db.Model):
 
 class Artist(db.Model):
     __tablename__ = 'Artist'
-
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     city = db.Column(db.String(120))
@@ -105,12 +102,12 @@ def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.    
   data=[{
-    "city": "San Francisco",
-    "state": "CA",
+    "city": Venue.query.filter_by(state='CA',city='San Francisco').first().city,
+    "state": Venue.query.filter_by(state='CA',city='San Francisco').first().state,
     "venues": Venue.query.filter_by(state='CA',city='San Francisco')
   }, {
-    "city": "New York",
-    "state": "NY",
+    "city": Venue.query.filter_by(state='NY',city='New York').first().city,
+    "state": Venue.query.filter_by(state='NY',city='New York').first().state,
     "venues": Venue.query.filter_by(state='NY',city='New York')
   }]
   """     [{
