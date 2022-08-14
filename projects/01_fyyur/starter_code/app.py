@@ -3,6 +3,8 @@
 #----------------------------------------------------------------------------#
 
 import json
+from lib2to3.pytree import convert
+from tokenize import String
 import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
@@ -70,7 +72,7 @@ class Show(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'),nullable=False)
     venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'),nullable=False)
-    start_time = db.Column(db.DateTime, default=datetime.utcnow)
+    start_time = db.Column(db.String(100))
 #----------------------------------------------------------------------------#
 # Filters.
 #----------------------------------------------------------------------------#
@@ -101,17 +103,7 @@ def index():
 @app.route('/venues')
 def venues():
   # TODO: replace with real venues data.
-  #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-  """       [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }] """
-    
+  #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.    
   data=[{
     "city": "San Francisco",
     "state": "CA",
@@ -134,7 +126,6 @@ def search_venues():
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
   query = db.session.query(Venue.id,Venue.name,Show.venue_id,db.func.count(Venue.id).label("num_upcoming_shows")).join(Venue,Show.venue_id == Venue.id).filter(Venue.name.ilike('%'+request.form.get('search_term', '')+'%')).group_by(Venue.id,Show.venue_id).all()
-  search = Artist.query.filter(Artist.name.ilike('%'+request.form.get('search_term', '')+'%')).first()
   response={
     "count": db.session.query(Venue.id,Venue.name,Show.venue_id,db.func.count(Venue.id).label("num_upcoming_shows")).join(Venue,Show.venue_id == Venue.id).filter(Venue.name.ilike('%'+request.form.get('search_term', '')+'%')).group_by(Venue.id,Show.venue_id).count(),
     "data": query
@@ -146,7 +137,15 @@ def show_venue(venue_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
   venues =  Venue.query.filter_by(id=venue_id).first()
-  artists =  Artist.query.join(Show)
+  query = db.session.query(
+    Venue,
+    Artist,
+    Artist.name.label("artist_name"),
+    Artist.id.label("artist_id"),
+    Artist.image_link.label("artist_image_link"),
+    Show,
+    Show.start_time
+  ).join(Show, Show.venue_id == Venue.id).join(Artist,Show.artist_id == Artist.id)
   data1={
     "id": venues.id,
     "name": venues.name,
@@ -160,12 +159,7 @@ def show_venue(venue_id):
     "seeking_talent": venues.seeking_talent,
     "seeking_description": venues.seeking_description,
     "image_link": venues.image_link,
-    "past_shows": [{
-      "artist_id": artists.filter_by(venue_id = 1).first().id,
-      "artist_name": artists.filter_by(venue_id =1 ).first().name,
-      "artist_image_link": artists.filter_by(venue_id =1).first().image_link,
-      "start_time": "2019-05-21T21:30:00.000Z"
-    }],
+    "past_shows": query.filter(Venue.id == 1).all(),
     "upcoming_shows": [],
     "past_shows_count": 1,
     "upcoming_shows_count": 0,
@@ -199,28 +193,8 @@ def show_venue(venue_id):
     "facebook_link": venues.facebook_link,
     "seeking_talent": venues.seeking_talent,
     "image_link": venues.image_link,
-    "past_shows": [{
-      "artist_id": artists.filter_by(artist_id=5,venue_id = 3).first().id,
-      "artist_name": artists.filter_by(artist_id=5,venue_id = 3).first().name,
-      "artist_image_link": artists.filter_by(artist_id=5,venue_id = 3).first().image_link,
-      "start_time": "2019-06-15T23:00:00.000Z"
-    }],
-    "upcoming_shows": [{
-      "artist_id": artists.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-01T20:00:00.000Z").first().id,
-      "artist_name": artists.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-01T20:00:00.000Z").first().name,
-      "artist_image_link": artists.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-01T20:00:00.000Z").first().image_link,
-      "start_time": "2035-04-01T20:00:00.000Z"
-    }, {
-      "artist_id": artists.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().id,
-      "artist_name": artists.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().name,
-      "artist_image_link": artists.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().image_link,
-      "start_time": "2035-04-08T20:00:00.000Z"
-    }, {
-      "artist_id": artists.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().id,
-      "artist_name": artists.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().name,
-      "artist_image_link": artists.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().image_link,
-      "start_time": "2035-04-08T20:00:00.000Z"
-    }],
+    "past_shows": query.filter(Artist.id==5,Venue.id == 3).all(),
+    "upcoming_shows": query.filter(Artist.id==6,Venue.id == 3).all(),
     "past_shows_count": 1,
     "upcoming_shows_count": 1,
   }
@@ -300,7 +274,17 @@ def show_artist(artist_id):
   # TODO: replace with real artist data from the artist table, using artist_id
   artists =  Artist.query.filter_by(id=artist_id).first()
   venues =  Venue.query.join(Show)
-  query = db.session.query(Venue,Artist,Show).join(Show, Show.venue_id == Venue.id).join(Artist,Show.artist_id == Artist.id)
+  count = db.session.query(Venue,Artist,Show).join(Show, Show.venue_id == Venue.id).join(Artist,Show.artist_id == Artist.id)
+  query = db.session.query(
+    Venue,
+    Artist,
+    Venue.name.label("venue_name"),
+    Venue.id.label("venue_id"),
+    Venue.image_link.label("venue_image_link"),
+    Show,
+    Show.start_time
+  ).join(Show, Show.venue_id == Venue.id).join(Artist,Show.artist_id == Artist.id)
+  date = "2019-05-21T21:30:00.000Z";
   data1={
     "id": artists.id,
     "name": artists.name,
@@ -313,15 +297,10 @@ def show_artist(artist_id):
     "seeking_venue": artists.seeking_venue,
     "seeking_description": artists.seeking_description,
     "image_link": artists.image_link,
-    "past_shows": [{
-      "venue_id": venues.filter_by(artist_id=4,venue_id = 1).first().id,
-      "venue_name": venues.filter_by(artist_id=4,venue_id = 1).first().name,
-      "venue_image_link": venues.filter_by(artist_id=4,venue_id = 1).first().image_link,
-      "start_time": query.filter(Show.start_time=="2019-05-21T21:30:00.000Z").first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-    }],
+    "past_shows": query.filter(Artist.id==4,Venue.id == 1).all(),
     "upcoming_shows": [],
-    "past_shows_count": query.filter(Show.artist_id==artist_id,Show.start_time < datetime.now()).count(),
-    "upcoming_shows_count": query.filter(Show.artist_id==artist_id,Show.start_time > datetime.now()).count(),
+    "past_shows_count": count.filter(Show.artist_id==artist_id,Show.start_time < datetime.now().strftime("%Y-%d-%m, %H:%M:%S")).count(),
+    "upcoming_shows_count": count.filter(Show.artist_id==artist_id,Show.start_time > datetime.now().strftime("%Y-%d-%m, %H:%M:%S")).count(),
   }
   data2={
     "id": artists.id,
@@ -333,12 +312,7 @@ def show_artist(artist_id):
     "facebook_link": artists.facebook_link,
     "seeking_venue": artists.seeking_venue,
     "image_link": artists.image_link,
-    "past_shows": [{
-      "venue_id": venues.filter_by(artist_id=5,venue_id = 3).first().id,
-      "venue_name": venues.filter_by(artist_id=5,venue_id = 3).first().name,
-      "venue_image_link": venues.filter_by(artist_id=5,venue_id = 3).first().image_link,
-      "start_time": query.filter(Show.start_time=="2019-06-15T23:00:00.000Z",Artist.id==5).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-    }],
+    "past_shows": query.filter(Artist.id==5,Venue.id == 3).all(),
     "upcoming_shows": [],
     "past_shows_count": 1,
     "upcoming_shows_count": 0,
@@ -353,27 +327,9 @@ def show_artist(artist_id):
     "seeking_venue": artists.seeking_venue,
     "image_link": artists.image_link,
     "past_shows": [],
-    "upcoming_shows": [{
-      
-      "venue_id": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-01T20:00:00.000Z").first().id,
-      "venue_name": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-01T20:00:00.000Z").first().name,
-      "venue_image_link": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-01T20:00:00.000Z").first().image_link,
-      "start_time": query.filter(Show.start_time=="2035-04-01T20:00:00.000Z",Artist.id==6).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-    }, {
-      
-      "venue_id": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().id,
-      "venue_name": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().name,
-      "venue_image_link": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().image_link,
-      "start_time": query.filter(Show.start_time=="2035-04-08T20:00:00.000Z",Artist.id==6).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-    }, {
-      
-      "venue_id": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().id,
-      "venue_name": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().name,
-      "venue_image_link": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().image_link,
-      "start_time": query.filter(Show.start_time=="2035-04-15T20:00:00.000Z",Artist.id==6).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-    }],
-    "past_shows_count": query.filter(Show.artist_id==artist_id,Show.start_time < datetime.now()).count(),
-    "upcoming_shows_count": query.filter(Show.artist_id==artist_id,Show.start_time > datetime.now()).count(),
+    "upcoming_shows": query.filter(Artist.id==6,Venue.id == 3).all(),
+    "past_shows_count": count.filter(Show.artist_id==artist_id,Show.start_time < datetime.now().strftime("%Y-%d-%m, %H:%M:%S")).count(),
+    "upcoming_shows_count": count.filter(Show.artist_id==artist_id,Show.start_time > datetime.now().strftime("%Y-%d-%m, %H:%M:%S")).count(),
   }
   data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[artist_id-4]
   return render_template('pages/show_artist.html', artist=data)
@@ -491,45 +447,16 @@ def shows():
   query = db.session.query(
     Venue,
     Artist,
-    Show
-    ).join(Show, Show.venue_id == Venue.id).join(Artist,Show.artist_id == Artist.id)
-
-  data=[{
-    "venue_id": query.filter(Show.venue_id==1).first().Venue.id,
-    "venue_name": query.filter(Show.venue_id==1).first().Venue.name,
-    "artist_id": query.filter(Show.artist_id==4).first().Artist.id,
-    "artist_name": query.filter(Show.venue_id==1,Show.artist_id==4).first().Artist.name,
-    "artist_image_link": query.filter(Show.artist_id==4).first().Artist.image_link,
-    "start_time": query.filter(Show.venue_id==1).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-  }, {
-    "venue_id": query.filter(Show.venue_id==3).first().Venue.id,
-    "venue_name": query.filter(Show.venue_id==3).first().Venue.name,
-    "artist_id": query.filter(Show.artist_id==5).first().Artist.id,
-    "artist_name": query.filter(Show.venue_id==3,Show.artist_id==5).first().Artist.name,
-    "artist_image_link": query.filter(Show.venue_id==3,Show.artist_id==5).first().Artist.image_link,
-    "start_time": query.filter(Show.artist_id==5).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-  }, {
-    "venue_id": query.filter(Show.venue_id==3).first().Venue.id,
-    "venue_name": query.filter(Show.venue_id==3).first().Venue.name,
-    "artist_id": query.filter(Show.artist_id==6).first().Artist.id,
-    "artist_name": query.filter(Show.artist_id==6).first().Artist.name,
-    "artist_image_link": query.filter(Show.venue_id==3,Show.artist_id==6).first().Artist.image_link,
-    "start_time": query.filter(Show.start_time=="2035-04-01T20:00:00.000Z").first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-  }, {    
-    "venue_id": query.filter(Show.venue_id==3).first().Venue.id,
-    "venue_name": query.filter(Show.venue_id==3).first().Venue.name,
-    "artist_id": query.filter(Show.artist_id==6).first().Artist.id,
-    "artist_name": query.filter(Show.artist_id==6).first().Artist.name,
-    "artist_image_link": query.filter(Show.venue_id==3,Show.artist_id==6).first().Artist.image_link,
-    "start_time": query.filter(Show.start_time=="2035-04-08T20:00:00.000Z").first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-  }, {
-    "venue_id": query.filter(Show.venue_id==3).first().Venue.id,
-    "venue_name": query.filter(Show.venue_id==3).first().Venue.name,
-    "artist_id": query.filter(Show.artist_id==6).first().Artist.id,
-    "artist_name": query.filter(Show.artist_id==6).first().Artist.name,
-    "artist_image_link": query.filter(Show.venue_id==3,Show.artist_id==6).first().Artist.image_link,
-    "start_time": query.filter(Show.start_time=="2035-04-15T20:00:00.000Z").first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
-  }]
+    Show,
+    Artist.name.label("artist_name"),
+    Artist.id.label("artist_id"),
+    Artist.image_link.label("artist_image_link"),
+    Venue.name.label("venue_name"),
+    Venue.id.label("venue_id"),
+    Venue.image_link.label("venue_image_link"),
+    Show.start_time
+  ).join(Show, Show.venue_id == Venue.id).join(Artist,Show.artist_id == Artist.id)
+  data=query.all()
   return render_template('pages/shows.html', shows=data)
 
 @app.route('/shows/create')
