@@ -133,13 +133,11 @@ def search_venues():
   # TODO: implement search on venues with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
+  query = db.session.query(Venue.id,Venue.name,Show,db.func.count(Show.venue_id).label("num_upcoming_shows")).join(Venue,Show.venue_id == Venue.id).filter(Venue.name.like('%'+request.form.get('search_term', '')+'%')).group_by(Venue.id,Show.id).all()
+  search = Artist.query.filter(Artist.name.like('%'+request.form.get('search_term', '')+'%')).first()
   response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
+    "count": Venue.query.filter(Venue.name.like('%'+request.form.get('search_term', '')+'%')).count(),
+    "data": query
   }
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
@@ -299,13 +297,11 @@ def search_artists():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
   # search for "band" should return "The Wild Sax Band".
+  query = db.session.query(Artist.id,Artist.name,Show,db.func.count(Show.artist_id).label("num_upcoming_shows")).join(Artist,Show.artist_id == Artist.id).filter(Artist.name.like('%'+request.form.get('search_term', '')+'%')).group_by(Artist.id,Show.id).all()
+  search = Artist.query.filter(Artist.name.like('%'+request.form.get('search_term', '')+'%')).first()
   response={
-    "count": 1,
-    "data": [{
-      "id": 4,
-      "name": "Guns N Petals",
-      "num_upcoming_shows": 0,
-    }]
+    "count": Artist.query.filter(Artist.name.like('%'+request.form.get('search_term', '')+'%')).count(),
+    "data": query
   }
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
@@ -315,6 +311,7 @@ def show_artist(artist_id):
   # TODO: replace with real artist data from the artist table, using artist_id
   artists =  Artist.query.filter_by(id=artist_id).first()
   venues =  Venue.query.join(Show)
+  query = db.session.query(Venue,Artist,Show).join(Show, Show.venue_id == Venue.id).join(Artist,Show.artist_id == Artist.id)
   data1={
     "id": artists.id,
     "name": artists.name,
@@ -331,11 +328,11 @@ def show_artist(artist_id):
       "venue_id": venues.filter_by(artist_id=4,venue_id = 1).first().id,
       "venue_name": venues.filter_by(artist_id=4,venue_id = 1).first().name,
       "venue_image_link": venues.filter_by(artist_id=4,venue_id = 1).first().image_link,
-      "start_time": "2019-05-21T21:30:00.000Z"
+      "start_time": query.filter(Show.start_time=="2019-05-21T21:30:00.000Z").first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
     }],
     "upcoming_shows": [],
-    "past_shows_count": 1,
-    "upcoming_shows_count": 0,
+    "past_shows_count": query.filter(Show.artist_id==artist_id,Show.start_time < datetime.now()).count(),
+    "upcoming_shows_count": query.filter(Show.artist_id==artist_id,Show.start_time > datetime.now()).count(),
   }
   data2={
     "id": artists.id,
@@ -351,7 +348,7 @@ def show_artist(artist_id):
       "venue_id": venues.filter_by(artist_id=5,venue_id = 3).first().id,
       "venue_name": venues.filter_by(artist_id=5,venue_id = 3).first().name,
       "venue_image_link": venues.filter_by(artist_id=5,venue_id = 3).first().image_link,
-      "start_time": "2019-06-15T23:00:00.000Z"
+      "start_time": query.filter(Show.start_time=="2019-06-15T23:00:00.000Z",Artist.id==5).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
     }],
     "upcoming_shows": [],
     "past_shows_count": 1,
@@ -372,22 +369,22 @@ def show_artist(artist_id):
       "venue_id": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-01T20:00:00.000Z").first().id,
       "venue_name": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-01T20:00:00.000Z").first().name,
       "venue_image_link": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-01T20:00:00.000Z").first().image_link,
-      "start_time": "2035-04-01T20:00:00.000Z"
+      "start_time": query.filter(Show.start_time=="2035-04-01T20:00:00.000Z",Artist.id==6).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
     }, {
       
       "venue_id": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().id,
       "venue_name": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().name,
       "venue_image_link": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().image_link,
-      "start_time": "2035-04-08T20:00:00.000Z"
+      "start_time": query.filter(Show.start_time=="2035-04-08T20:00:00.000Z",Artist.id==6).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
     }, {
       
       "venue_id": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().id,
       "venue_name": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().name,
       "venue_image_link": venues.filter_by(artist_id=6,venue_id = 3,start_time="2035-04-08T20:00:00.000Z").first().image_link,
-      "start_time": "2035-04-15T20:00:00.000Z"
+      "start_time": query.filter(Show.start_time=="2035-04-15T20:00:00.000Z",Artist.id==6).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
     }],
-    "past_shows_count": 0,
-    "upcoming_shows_count": 3,
+    "past_shows_count": query.filter(Show.artist_id==artist_id,Show.start_time < datetime.now()).count(),
+    "upcoming_shows_count": query.filter(Show.artist_id==artist_id,Show.start_time > datetime.now()).count(),
   }
   data = list(filter(lambda d: d['id'] == artist_id, [data1, data2, data3]))[artist_id-4]
   return render_template('pages/show_artist.html', artist=data)
@@ -502,41 +499,47 @@ def shows():
   # TODO: replace with real venues data.
   venues =  Venue.query.join(Show).join(Artist)
   artists =  Artist.query.join(Show)
+  query = db.session.query(
+    Venue,
+    Artist,
+    Show
+    ).join(Show, Show.venue_id == Venue.id).join(Artist,Show.artist_id == Artist.id)
+
   data=[{
-    "venue_id": venues.filter(Show.venue_id==1).first().id,
-    "venue_name": venues.filter(Show.venue_id==1).first().name,
-    "artist_id": artists.filter(Show.artist_id==4).first().shows[0].artists.id,
-    "artist_name": artists.filter(Show.venue_id==1,Show.artist_id==4).first().shows[0].artists.name,
-    "artist_image_link": artists.filter(Show.artist_id==4).first().shows[0].artists.image_link,
-    "start_time": venues.filter(Show.venue_id==1).first().shows[0].start_time.strftime("%m/%d/%Y, %H:%M:%S")
+    "venue_id": query.filter(Show.venue_id==1).first().Venue.id,
+    "venue_name": query.filter(Show.venue_id==1).first().Venue.name,
+    "artist_id": query.filter(Show.artist_id==4).first().Artist.id,
+    "artist_name": query.filter(Show.venue_id==1,Show.artist_id==4).first().Artist.name,
+    "artist_image_link": query.filter(Show.artist_id==4).first().Artist.image_link,
+    "start_time": query.filter(Show.venue_id==1).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
   }, {
-    "venue_id": venues.filter(Show.venue_id==3).first().id,
-    "venue_name": venues.filter(Show.venue_id==3).first().name,
-    "artist_id": artists.filter(Show.artist_id==5).first().shows[0].artists.id,
-    "artist_name": artists.filter(Show.venue_id==3,Show.artist_id==5).first().shows[0].artists.name,
-    "artist_image_link": artists.filter(Show.venue_id==3,Show.artist_id==5).first().shows[0].artists.image_link,
-    "start_time": artists.filter(Show.artist_id==5).first().shows[0].start_time.strftime("%m/%d/%Y, %H:%M:%S")
+    "venue_id": query.filter(Show.venue_id==3).first().Venue.id,
+    "venue_name": query.filter(Show.venue_id==3).first().Venue.name,
+    "artist_id": query.filter(Show.artist_id==5).first().Artist.id,
+    "artist_name": query.filter(Show.venue_id==3,Show.artist_id==5).first().Artist.name,
+    "artist_image_link": query.filter(Show.venue_id==3,Show.artist_id==5).first().Artist.image_link,
+    "start_time": query.filter(Show.artist_id==5).first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
   }, {
-    "venue_id": venues.filter(Show.venue_id==3).first().id,
-    "venue_name": venues.filter(Show.venue_id==3).first().name,
-    "artist_id": artists.filter(Show.artist_id==6).first().shows[0].artists.id,
-    "artist_name": artists.filter(Show.artist_id==6).first().shows[0].artists.name,
-    "artist_image_link": artists.filter(Show.venue_id==3,Show.artist_id==6).first().shows[0].artists.image_link,
-    "start_time": artists.filter(Show.venue_id==3,Show.artist_id==6).first().shows[0].start_time.strftime("%m/%d/%Y, %H:%M:%S")
+    "venue_id": query.filter(Show.venue_id==3).first().Venue.id,
+    "venue_name": query.filter(Show.venue_id==3).first().Venue.name,
+    "artist_id": query.filter(Show.artist_id==6).first().Artist.id,
+    "artist_name": query.filter(Show.artist_id==6).first().Artist.name,
+    "artist_image_link": query.filter(Show.venue_id==3,Show.artist_id==6).first().Artist.image_link,
+    "start_time": query.filter(Show.start_time=="2035-04-01T20:00:00.000Z").first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
   }, {    
-    "venue_id": venues.filter(Show.venue_id==3).first().id,
-    "venue_name": venues.filter(Show.venue_id==3).first().name,
-    "artist_id": artists.filter(Show.artist_id==6).first().shows[0].artists.id,
-    "artist_name": artists.filter(Show.artist_id==6).first().shows[0].artists.name,
-    "artist_image_link": artists.filter(Show.venue_id==3,Show.artist_id==6).first().shows[0].artists.image_link,
-    "start_time": "2035-04-08T20:00:00.000Z"
+    "venue_id": query.filter(Show.venue_id==3).first().Venue.id,
+    "venue_name": query.filter(Show.venue_id==3).first().Venue.name,
+    "artist_id": query.filter(Show.artist_id==6).first().Artist.id,
+    "artist_name": query.filter(Show.artist_id==6).first().Artist.name,
+    "artist_image_link": query.filter(Show.venue_id==3,Show.artist_id==6).first().Artist.image_link,
+    "start_time": query.filter(Show.start_time=="2035-04-08T20:00:00.000Z").first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
   }, {
-    "venue_id": venues.filter(Show.venue_id==3).first().id,
-    "venue_name": venues.filter(Show.venue_id==3).first().name,
-    "artist_id": artists.filter(Show.artist_id==6).first().shows[0].artists.id,
-    "artist_name": artists.filter(Show.artist_id==6).first().shows[0].artists.name,
-    "artist_image_link": artists.filter(Show.venue_id==3,Show.artist_id==6).first().shows[0].artists.image_link,
-    "start_time": "2035-04-15T20:00:00.000Z"
+    "venue_id": query.filter(Show.venue_id==3).first().Venue.id,
+    "venue_name": query.filter(Show.venue_id==3).first().Venue.name,
+    "artist_id": query.filter(Show.artist_id==6).first().Artist.id,
+    "artist_name": query.filter(Show.artist_id==6).first().Artist.name,
+    "artist_image_link": query.filter(Show.venue_id==3,Show.artist_id==6).first().Artist.image_link,
+    "start_time": query.filter(Show.start_time=="2035-04-15T20:00:00.000Z").first().Show.start_time.strftime("%m/%d/%Y, %H:%M:%S")
   }]
   return render_template('pages/shows.html', shows=data)
 
