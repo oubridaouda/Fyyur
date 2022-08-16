@@ -1,3 +1,5 @@
+from flask_sqlalchemy import SQLAlchemy
+db = SQLAlchemy()
 class Venue(db.Model):
     __tablename__ = 'Venue'
     id = db.Column(db.Integer, primary_key=True)
@@ -39,3 +41,4 @@ class Show(db.Model):
     artist_id = db.Column(db.Integer, db.ForeignKey('Artist.id'),nullable=False)
     venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'),nullable=False)
     start_time = db.Column(db.String(100))
+db.create_all
