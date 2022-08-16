@@ -101,15 +101,7 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.    
-  data=[{
-    "city": Venue.query.filter_by(state='CA',city='San Francisco').first().city,
-    "state": Venue.query.filter_by(state='CA',city='San Francisco').first().state,
-    "venues": Venue.query.filter_by(state='CA',city='San Francisco')
-  }, {
-    "city": Venue.query.filter_by(state='NY',city='New York').first().city,
-    "state": Venue.query.filter_by(state='NY',city='New York').first().state,
-    "venues": Venue.query.filter_by(state='NY',city='New York')
-  }]
+  data= Venue.query.all()
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
